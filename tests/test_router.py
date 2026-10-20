@@ -1,0 +1,33 @@
+from decider_fabric.decider import Answers
+from decider_fabric.router import LADDERS, ModelRouter
+
+
+class FakeDecider:
+    def __init__(self, *replies):
+        self.replies = list(replies)
+
+    def ask(self, state, questions):
+        intent, probabilities = self.replies.pop(0)
+        return Answers(
+            answers={
+                "intent": {"choice": intent, "confidence": 0.9},
+                "tier": {"probabilities": {str(i): p for i, p in enumerate(probabilities)}},
+            },
+            wall_ms=1.0, server_ms=1.0, input_tokens=10,
+        )
+
+
+def router(*replies, **kwargs):
+    return ModelRouter(FakeDecider(*replies), LADDERS["nova"], **kwargs)
+
+
+def test_spread_out_small_still_routes_small():
+    # The decider never puts most mass on one level; E[tier] = 0.47 is still small.
+    decision = router(("chat", (0.68, 0.17, 0.15))).decide("", "hey")
+    assert (decision.tier, decision.why) == (0, "score")
+
+
+def test_mass_on_higher_tiers_escalates():
+    # argmax says medium, but E[tier] = 1.45 crosses the frontier cut.
+    decision = router(("lookup", (0.16, 0.23, 0.61))).decide("", "q")
+    assert decision.tier == 2
