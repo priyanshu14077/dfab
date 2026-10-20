@@ -31,3 +31,8 @@ def test_mass_on_higher_tiers_escalates():
     # argmax says medium, but E[tier] = 1.45 crosses the frontier cut.
     decision = router(("lookup", (0.16, 0.23, 0.61))).decide("", "q")
     assert decision.tier == 2
+
+
+def test_intent_floor_lifts_code_off_the_smallest_tier():
+    decision = router(("code", (0.9, 0.08, 0.02))).decide("", "fix my regex")
+    assert (decision.tier, decision.why) == (1, "floor:code")
