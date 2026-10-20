@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Protocol
+
+from .decider import Answers, Decider
 
 
 @dataclass(frozen=True)
@@ -48,3 +52,38 @@ INTENTS = {
 }
 
 DEFAULT_FLOORS = {"code": 1, "reasoning": 1}
+
+
+class Asks(Protocol):
+    def ask(self, state: str, questions: Mapping[str, dict]) -> Answers: ...
+
+
+@dataclass(frozen=True)
+class RouteDecision:
+    tier: int
+    wanted: int
+    why: str
+    intent: str | None
+    intent_confidence: float | None
+    probabilities: tuple[float, ...]
+    decider_ms: float
+
+
+@dataclass
+class ModelRouter:
+    decider: Asks
+    ladder: Sequence[Tier]
+    history_chars: int = 1500
+
+    def questions(self) -> dict[str, dict]:
+        return {
+            "intent": Decider.choice("What kind of request is the user's new message?", INTENTS),
+            "tier": Decider.score(
+                "What is the least capable assistant that would answer the user's new message well?",
+                [f"{tier.name}: {tier.good_for}" for tier in self.ladder],
+            ),
+        }
+
+    def state(self, history: str, prompt: str) -> str:
+        recent = history[-self.history_chars :] if history else "(none)"
+        return f"--- EARLIER CONVERSATION ---\n{recent}\n\n--- USER'S NEW MESSAGE ---\n{prompt}"
