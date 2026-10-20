@@ -66,7 +66,12 @@ class RoutingHook(HookProvider):
         return self._models[tier.model_id]
 
     def _before(self, event: BeforeInvocationEvent) -> None:
-        prompt = render(event.messages)
+        # The new message goes in without a role prefix, exactly as `dfab route` sends it:
+        # the decider is sensitive enough that "user: " alone moves the tier score.
+        prompt = "\n".join(
+            block["text"] for message in event.messages or [] for block in message.get("content", [])
+            if isinstance(block, dict) and "text" in block
+        )
         history = event.agent.messages
         if history and event.messages and history[-len(event.messages):] == event.messages:
             history = history[: -len(event.messages)]
