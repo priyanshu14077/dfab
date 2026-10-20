@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .decider import Answers, Decider
+from .decider import Answers, Decider, DeciderUnavailable
 
 
 @dataclass(frozen=True)
@@ -95,7 +95,13 @@ class ModelRouter:
         return f"--- EARLIER CONVERSATION ---\n{recent}\n\n--- USER'S NEW MESSAGE ---\n{prompt}"
 
     def decide(self, history: str, prompt: str) -> RouteDecision:
-        answers = self.decider.ask(self.state(history, prompt), self.questions())
+        top = len(self.ladder) - 1
+        try:
+            answers = self.decider.ask(self.state(history, prompt), self.questions())
+        except DeciderUnavailable:
+            self.current, self._lower_streak = top, 0
+            return RouteDecision(top, top, "decider-down", None, None, (), None, 0.0)
+
         intent = answers["intent"]
         tier_answer = answers["tier"]
         probabilities = tuple(
@@ -103,7 +109,7 @@ class ModelRouter:
         )
         score = sum(i * p for i, p in enumerate(probabilities))
         wanted, why = sum(score >= cut for cut in self.cuts), "score"
-        floor = min(self.floors.get(intent["choice"], 0), len(self.ladder) - 1)
+        floor = min(self.floors.get(intent["choice"], 0), top)
         if floor > wanted:
             wanted, why = floor, f"floor:{intent['choice']}"
         tier, why = self._damp(wanted, why)
