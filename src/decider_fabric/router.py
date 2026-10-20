@@ -1,4 +1,23 @@
-"""Model tiers and the routing decision."""
+"""The routing decision: which tier of model should answer this turn.
+
+One decider request asks two questions about the turn:
+
+- `intent` (choice): what kind of request it is. Like QoS marking at a network edge, the
+  class sets a floor on the tier, so "code" never lands on the smallest model.
+- `tier` (score over an ordered rubric): the least capable tier that would answer well.
+
+The policy is plain code over those numbers:
+
+1. Cut points on the expected tier, sum(i * p_i), which the server returns as `score`.
+   Probability on higher tiers pulls the score up, so uncertainty pushes the pick upward,
+   but no single tier has to win most of the mass: the decider spreads probability over
+   rubric levels even for "hey, how's it going?", so a cumulative-probability bar never
+   picked the small tier.
+2. Intent floor.
+3. Flap damping: move up at once, move down only after `hold_down` consecutive turns that
+   want a lower tier, so one "thanks!" doesn't drop a hard conversation to the small model.
+4. Decider unavailable: route to the top tier, so the agent stays correct, just pricier.
+"""
 
 from __future__ import annotations
 
