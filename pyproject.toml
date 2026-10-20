@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "decider-fabric"
+version = "0.1.0"
+description = "Route each Strands agent turn to the cheapest Bedrock model that can handle it, decided by Strands Decider 2B."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "strands-agents>=1.0",
+    "botocore[crt]",
+    "rich>=13.7",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
