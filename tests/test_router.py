@@ -1,5 +1,4 @@
-from decider_fabric.decider import Answers, DeciderUnavailable
-from decider_fabric.router import LADDERS, ModelRouter
+from decider_fabric import LADDERS, Answers, DeciderUnavailable, ModelRouter
 
 
 class FakeDecider:
