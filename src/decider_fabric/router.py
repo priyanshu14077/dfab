@@ -38,3 +38,13 @@ LADDERS: dict[str, tuple[Tier, ...]] = {
         Tier("nova-pro", "apac.amazon.nova-pro-v1:0", 0.80, 3.20, FRONTIER),
     ),
 }
+
+INTENTS = {
+    "chat": "a greeting, small talk, or a reaction to the previous answer",
+    "lookup": "asks for a fact, a definition or a quick piece of information",
+    "writing": "asks to write, rewrite, summarise or translate text",
+    "code": "asks to write, explain, review or debug code",
+    "reasoning": "asks to solve, prove, plan, compare or analyse something that needs careful thought",
+}
+
+DEFAULT_FLOORS = {"code": 1, "reasoning": 1}
