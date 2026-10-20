@@ -105,7 +105,9 @@ class ModelRouter:
             "intent": Decider.choice("What kind of request is the user's new message?", INTENTS),
             "tier": Decider.score(
                 "What is the least capable assistant that would answer the user's new message well?",
-                [f"{tier.name}: {tier.good_for}" for tier in self.ladder],
+                # Capability text only: model names in the rubric shift the score, so the
+                # same prompt would route differently on the nova and anthropic ladders.
+                [tier.good_for for tier in self.ladder],
             ),
         }
 
