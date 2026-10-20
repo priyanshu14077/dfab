@@ -44,6 +44,24 @@ class Decider:
         self.url = url.rstrip("/")
         self.timeout = timeout
 
+    @staticmethod
+    def noul(instructions: str, criteria: Mapping[str, str] | None = None) -> dict[str, Any]:
+        """Yes/no; the answer is P(true)."""
+        question: dict[str, Any] = {"type": "noul", "instructions": instructions}
+        if criteria:
+            question["criteria"] = dict(criteria)
+        return question
+
+    @staticmethod
+    def choice(instructions: str, criteria: Mapping[str, str]) -> dict[str, Any]:
+        """Pick one of N; `criteria` maps option name to what it means."""
+        return {"type": "choice", "instructions": instructions, "criteria": dict(criteria)}
+
+    @staticmethod
+    def score(instructions: str, criteria: list[str]) -> dict[str, Any]:
+        """Rate against an ordered rubric, lowest level first."""
+        return {"type": "score", "instructions": instructions, "criteria": list(criteria)}
+
     def ask(self, state: str, questions: Mapping[str, dict[str, Any]]) -> Answers:
         body = json.dumps({"state": state, "questions": dict(questions)}).encode()
         request = urllib.request.Request(
