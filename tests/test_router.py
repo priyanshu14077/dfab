@@ -36,3 +36,18 @@ def test_mass_on_higher_tiers_escalates():
 def test_intent_floor_lifts_code_off_the_smallest_tier():
     decision = router(("code", (0.9, 0.08, 0.02))).decide("", "fix my regex")
     assert (decision.tier, decision.why) == (1, "floor:code")
+
+
+def test_moves_up_at_once_but_down_only_after_hold_down():
+    r = router(
+        ("reasoning", (0.0, 0.1, 0.9)),
+        ("chat", (0.95, 0.04, 0.01)),
+        ("chat", (0.95, 0.04, 0.01)),
+        ("reasoning", (0.0, 0.1, 0.9)),
+        hold_down=2,
+    )
+    first, held, released, back_up = (r.decide("", "q") for _ in range(4))
+    assert first.tier == 2
+    assert (held.tier, held.wanted, held.why) == (2, 0, "hold-down 1/2")
+    assert released.tier == 0
+    assert back_up.tier == 2
