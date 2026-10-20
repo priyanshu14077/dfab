@@ -1,0 +1,8 @@
+.venv/
+vendor/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+# upstream strands-decider example code, copied locally for experiments
+spike/_client.py
+spike/tool_call_intervention.py
