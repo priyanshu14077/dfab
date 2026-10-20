@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from .decider import Answers, Decider
@@ -75,6 +75,7 @@ class ModelRouter:
     decider: Asks
     ladder: Sequence[Tier]
     cuts: Sequence[float] = (0.85, 1.3)
+    floors: Mapping[str, int] = field(default_factory=lambda: dict(DEFAULT_FLOORS))
     history_chars: int = 1500
 
     def questions(self) -> dict[str, dict]:
@@ -98,8 +99,11 @@ class ModelRouter:
             tier_answer["probabilities"][str(i)] for i in range(len(self.ladder))
         )
         score = sum(i * p for i, p in enumerate(probabilities))
-        wanted = sum(score >= cut for cut in self.cuts)
+        wanted, why = sum(score >= cut for cut in self.cuts), "score"
+        floor = min(self.floors.get(intent["choice"], 0), len(self.ladder) - 1)
+        if floor > wanted:
+            wanted, why = floor, f"floor:{intent['choice']}"
         return RouteDecision(
-            wanted, wanted, "score", intent["choice"], intent["confidence"], probabilities, score,
+            wanted, wanted, why, intent["choice"], intent["confidence"], probabilities, score,
             answers.wall_ms,
         )
