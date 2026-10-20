@@ -66,6 +66,7 @@ class RouteDecision:
     intent: str | None
     intent_confidence: float | None
     probabilities: tuple[float, ...]
+    score: float | None
     decider_ms: float
 
 
@@ -73,7 +74,7 @@ class RouteDecision:
 class ModelRouter:
     decider: Asks
     ladder: Sequence[Tier]
-    threshold: float = 0.7
+    cuts: Sequence[float] = (0.85, 1.3)
     history_chars: int = 1500
 
     def questions(self) -> dict[str, dict]:
@@ -96,16 +97,9 @@ class ModelRouter:
         probabilities = tuple(
             tier_answer["probabilities"][str(i)] for i in range(len(self.ladder))
         )
-        wanted = self._cumulative(probabilities)
+        score = sum(i * p for i, p in enumerate(probabilities))
+        wanted = sum(score >= cut for cut in self.cuts)
         return RouteDecision(
-            wanted, wanted, "cumulative", intent["choice"], intent["confidence"], probabilities,
+            wanted, wanted, "score", intent["choice"], intent["confidence"], probabilities, score,
             answers.wall_ms,
         )
-
-    def _cumulative(self, probabilities: Sequence[float]) -> int:
-        total = 0.0
-        for index, p in enumerate(probabilities):
-            total += p
-            if total >= self.threshold:
-                return index
-        return len(probabilities) - 1
