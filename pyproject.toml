@@ -18,5 +18,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 
+[project.scripts]
+dfab = "decider_fabric.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
