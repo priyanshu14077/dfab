@@ -94,6 +94,10 @@ class ModelRouter:
         recent = history[-self.history_chars :] if history else "(none)"
         return f"--- EARLIER CONVERSATION ---\n{recent}\n\n--- USER'S NEW MESSAGE ---\n{prompt}"
 
+    def __post_init__(self) -> None:
+        if len(self.cuts) != len(self.ladder) - 1:
+            raise ValueError(f"{len(self.ladder)} tiers need {len(self.ladder) - 1} cut points")
+
     def decide(self, history: str, prompt: str) -> RouteDecision:
         top = len(self.ladder) - 1
         try:

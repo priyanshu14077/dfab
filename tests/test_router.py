@@ -36,6 +36,13 @@ def test_mass_on_higher_tiers_escalates():
     assert decision.tier == 2
 
 
+def test_cuts_must_match_ladder():
+    import pytest
+
+    with pytest.raises(ValueError):
+        router(cuts=(1.0,))
+
+
 def test_intent_floor_lifts_code_off_the_smallest_tier():
     decision = router(("code", (0.9, 0.08, 0.02))).decide("", "fix my regex")
     assert (decision.tier, decision.why) == (1, "floor:code")
