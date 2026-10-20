@@ -1,4 +1,4 @@
-from decider_fabric.decider import Answers
+from decider_fabric.decider import Answers, DeciderUnavailable
 from decider_fabric.router import LADDERS, ModelRouter
 
 
@@ -7,7 +7,10 @@ class FakeDecider:
         self.replies = list(replies)
 
     def ask(self, state, questions):
-        intent, probabilities = self.replies.pop(0)
+        reply = self.replies.pop(0)
+        if reply is None:
+            raise DeciderUnavailable("down")
+        intent, probabilities = reply
         return Answers(
             answers={
                 "intent": {"choice": intent, "confidence": 0.9},
@@ -51,3 +54,8 @@ def test_moves_up_at_once_but_down_only_after_hold_down():
     assert (held.tier, held.wanted, held.why) == (2, 0, "hold-down 1/2")
     assert released.tier == 0
     assert back_up.tier == 2
+
+
+def test_decider_down_fails_to_top_tier():
+    decision = router(None).decide("", "q")
+    assert (decision.tier, decision.why) == (2, "decider-down")
