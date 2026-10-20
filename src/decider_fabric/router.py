@@ -75,8 +75,11 @@ class ModelRouter:
     decider: Asks
     ladder: Sequence[Tier]
     cuts: Sequence[float] = (0.85, 1.3)
+    hold_down: int = 2
     floors: Mapping[str, int] = field(default_factory=lambda: dict(DEFAULT_FLOORS))
     history_chars: int = 1500
+    current: int | None = None
+    _lower_streak: int = 0
 
     def questions(self) -> dict[str, dict]:
         return {
@@ -103,7 +106,18 @@ class ModelRouter:
         floor = min(self.floors.get(intent["choice"], 0), len(self.ladder) - 1)
         if floor > wanted:
             wanted, why = floor, f"floor:{intent['choice']}"
+        tier, why = self._damp(wanted, why)
         return RouteDecision(
-            wanted, wanted, why, intent["choice"], intent["confidence"], probabilities, score,
+            tier, wanted, why, intent["choice"], intent["confidence"], probabilities, score,
             answers.wall_ms,
         )
+
+    def _damp(self, wanted: int, why: str) -> tuple[int, str]:
+        if self.current is None or wanted >= self.current:
+            self.current, self._lower_streak = wanted, 0
+            return wanted, why
+        self._lower_streak += 1
+        if self._lower_streak >= self.hold_down:
+            self.current, self._lower_streak = wanted, 0
+            return wanted, why
+        return self.current, f"hold-down {self._lower_streak}/{self.hold_down}"
