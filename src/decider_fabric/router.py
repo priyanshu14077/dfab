@@ -73,6 +73,7 @@ class RouteDecision:
 class ModelRouter:
     decider: Asks
     ladder: Sequence[Tier]
+    threshold: float = 0.7
     history_chars: int = 1500
 
     def questions(self) -> dict[str, dict]:
@@ -87,3 +88,24 @@ class ModelRouter:
     def state(self, history: str, prompt: str) -> str:
         recent = history[-self.history_chars :] if history else "(none)"
         return f"--- EARLIER CONVERSATION ---\n{recent}\n\n--- USER'S NEW MESSAGE ---\n{prompt}"
+
+    def decide(self, history: str, prompt: str) -> RouteDecision:
+        answers = self.decider.ask(self.state(history, prompt), self.questions())
+        intent = answers["intent"]
+        tier_answer = answers["tier"]
+        probabilities = tuple(
+            tier_answer["probabilities"][str(i)] for i in range(len(self.ladder))
+        )
+        wanted = self._cumulative(probabilities)
+        return RouteDecision(
+            wanted, wanted, "cumulative", intent["choice"], intent["confidence"], probabilities,
+            answers.wall_ms,
+        )
+
+    def _cumulative(self, probabilities: Sequence[float]) -> int:
+        total = 0.0
+        for index, p in enumerate(probabilities):
+            total += p
+            if total >= self.threshold:
+                return index
+        return len(probabilities) - 1
